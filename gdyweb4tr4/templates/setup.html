@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏设置</title>
+    <style>
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+        
+        /* 主容器 */
+        .container {
+            flex: 1;
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+        
+        /* 卡片组件 */
+        .card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .card-header h1 {
+            font-size: 28px;
+            font-weight: 500;
+            margin: 0;
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background-color: white;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        select.form-control {
+            cursor: pointer;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        /* 玩家输入区域 */
+        #player-inputs {
+            margin-top: 30px;
+        }
+        
+        .player-input-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .player-input-group label {
+            flex: 0 0 80px;
+            margin-bottom: 0;
+        }
+        
+        .player-input-group .form-control {
+            flex: 1;
+        }
+        
+        /* 欢迎信息 */
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #666;
+            font-size: 18px;
+        }
+        
+        /* 页脚 */
+        footer {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .player-input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .player-input-group label {
+                flex: none;
+                margin-bottom: 8px;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">干瞪眼计分系统</a>
+        </div>
+    </nav>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="card">
+            <!-- 卡片头部 -->
+            <div class="card-header">
+                <h1>游戏设置</h1>
+            </div>
+            
+            <!-- 卡片主体 -->
+            <div class="card-body">
+                <div class="welcome-message">
+                    欢迎，{{ session.username }}！
+                </div>
+                
+                <form method="POST" id="gameForm">
+                    <div class="form-group">
+                        <label for="player_count">游戏人数:</label>
+                        <select id="player_count" name="player_count" onchange="updatePlayerInputs()" required class="form-control">
+                            <option value="3">3人</option>
+                            <option value="4">4人</option>
+                            <option value="5">5人</option>
+                            <option value="6">6人</option>
+                            <option value="7">7人</option>
+                            <option value="8">8人</option>
+                            <option value="9">9人</option>
+                        </select>
+                    </div>
+                    
+                    <div id="player-inputs">
+                        <!-- 玩家输入框将在这里动态生成 -->
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">开始游戏</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer>
+        <div class="footer-container">
+            <p>干瞪眼计分系统 © 2023</p>
+        </div>
+    </footer>
+
+    <script>
+        // 页面加载时初始化玩家输入框
+        document.addEventListener('DOMContentLoaded', function() {
+            updatePlayerInputs();
+        });
+        
+        function updatePlayerInputs() {
+            const playerCount = parseInt(document.getElementById('player_count').value);
+            const playerInputs = document.getElementById('player-inputs');
+            
+            // 清空现有内容
+            playerInputs.innerHTML = '';
+            
+            // 创建新的输入框
+            for (let i = 1; i <= playerCount; i++) {
+                const div = document.createElement('div');
+                div.className = 'player-input-group';
+                div.innerHTML = `
+                    <label for="player${i}">玩家${i}名称:</label>
+                    <input type="text" id="player${i}" name="player${i}" required class="form-control">
+                `;
+                playerInputs.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>

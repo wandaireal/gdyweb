@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计分页面</title>
+    <style>
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+        
+        /* 主容器 */
+        .container {
+            flex: 1;
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+        
+        /* 卡片组件 */
+        .card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            margin-bottom: 30px;
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .card-header h1 {
+            font-size: 28px;
+            font-weight: 500;
+            margin: 0;
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .form-control:read-only {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        /* 玩家行 */
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+        }
+        
+        .player-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .player-name {
+            font-weight: 600;
+            width: 30%;
+            font-size: 16px;
+        }
+        
+        .score-input {
+            width: 120px;
+            padding: 8px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .winner-selection {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .winner-radio {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        /* 轮次信息 */
+        .round-info {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 18px;
+            color: #1976d2;
+            font-weight: 600;
+        }
+        
+        /* 表格样式 */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .table thead {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .table th,
+        .table td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .table tbody tr {
+            transition: background-color 0.2s;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* 得分样式 */
+        .positive-score {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        
+        .negative-score {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        /* 标题样式 */
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 500;
+            font-size: 24px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+        
+        /* 区块样式 */
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        /* 页脚 */
+        footer {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .player-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .player-name {
+                width: 100%;
+            }
+            
+            .winner-selection {
+                justify-content: center;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .history-table th, .history-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .history-table th {
+            background-color: #f2f2f2;
+        }
+        .instructions {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .calculation-info {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+        .error-message {
+            color: #f44336;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">干瞪眼计分系统</a>
+        </div>
+    </nav>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="card">
+            <!-- 卡片头部 -->
+            <div class="card-header">
+                <h1>游戏计分页面</h1>
+            </div>
+            
+            <!-- 卡片主体 -->
+            <div class="card-body">
+                <div class="round-info">
+                    <h2>第 {{ session.current_round }} 回合</h2>
+                    <p>玩家: {{ session.player_names | join(', ') }}</p>
+                </div>
+                
+                <div class="instructions">
+                    <h3>计分规则</h3>
+                    <p>1. 选择一个获胜玩家（只能选择一个）</p>
+                    <p>2. 为其他玩家输入负分（只能输入负数）</p>
+                    <p>3. 系统将自动计算获胜玩家的得分，使所有玩家得分总和为0</p>
+                </div>
+                
+                <form method="POST" id="scoreForm">
+                    <h3>选择获胜玩家并输入得分</h3>
+                    {% for player in session.player_names %}
+                    <div class="player-row">
+                        <div class="player-name">
+                            <input type="radio" class="winner-radio" id="winner_{{ player }}" name="winner" value="{{ player }}" onchange="updateScoreInputs()">
+                            <label for="winner_{{ player }}">{{ player }}</label>
+                        </div>
+                        <input type="number" class="score-input" id="score_{{ player }}" name="score_{{ player }}" step="0.01" placeholder="输入负分" max="0">
+                    </div>
+                    {% endfor %}
+                    
+                    <div id="calculation-info" class="calculation-info"></div>
+                    <div id="error-message" class="error-message"></div>
+                    
+                    <button type="submit" id="submitBtn" class="btn btn-success">提交得分</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmEndGame()">结束游戏</button>
+                </form>
+                
+                <div class="section">
+                    <h2>当前得分</h2>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>玩家</th>
+                                <th>总得分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player, score in session.scores.items() %}
+                            <tr>
+                                <td>{{ player }}</td>
+                                <td class="{% if score > 0 %}positive-score{% elif score < 0 %}negative-score{% endif %}">{{ score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if session.round_history %}
+                <div class="section">
+                    <h2>回合历史</h2>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>回合</th>
+                                {% for player in session.player_names %}
+                                <th>{{ player }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for round_data in session.round_history %}
+                            <tr>
+                                <td>第 {{ loop.index }} 轮</td>
+                                {% for player in session.player_names %}
+                                <td class="{% if round_data[player] > 0 %}positive-score{% elif round_data[player] < 0 %}negative-score{% endif %}">{{ round_data[player] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer>
+        <div class="footer-container">
+            <p>干瞪眼计分系统 © 2023</p>
+        </div>
+    </footer>
+
+    <script>
+        let selectedWinner = null;
+        
+        function updateScoreInputs() {
+            const winnerRadios = document.querySelectorAll('input[name="winner"]');
+            const calculationInfo = document.getElementById('calculation-info');
+            const errorMessage = document.getElementById('error-message');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // 找出选中的获胜玩家
+            selectedWinner = null;
+            for (const radio of winnerRadios) {
+                if (radio.checked) {
+                    selectedWinner = radio.value;
+                    break;
+                }
+            }
+            
+            // 重置所有输入框
+            const scoreInputs = document.querySelectorAll('.score-input');
+            scoreInputs.forEach(input => {
+                input.disabled = false;
+                input.value = '';
+                input.placeholder = '输入负分';
+            });
+            
+            // 禁用获胜玩家的输入框
+            if (selectedWinner) {
+                const winnerInput = document.getElementById(`score_${selectedWinner}`);
+                winnerInput.disabled = true;
+                winnerInput.value = '';
+                winnerInput.placeholder = '自动计算';
+                
+                calculationInfo.textContent = `已选择获胜玩家: ${selectedWinner}。系统将自动计算其得分。`;
+                errorMessage.textContent = '';
+                submitBtn.disabled = false;
+            } else {
+                calculationInfo.textContent = '请选择一名获胜玩家';
+                submitBtn.disabled = true;
+            }
+        }
+        
+        function confirmEndGame() {
+            if (confirm('确定要结束游戏吗？')) {
+                window.location.href = '/end_game';
+            }
+        }
+        
+        // 为所有输入框添加事件监听，实时计算获胜玩家的得分
+        document.addEventListener('DOMContentLoaded', function() {
+            const scoreInputs = document.querySelectorAll('.score-input');
+            const calculationInfo = document.getElementById('calculation-info');
+            const errorMessage = document.getElementById('error-message');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // 默认选中第一个玩家
+            const firstRadio = document.querySelector('.winner-radio');
+            if (firstRadio) {
+                firstRadio.checked = true;
+                updateScoreInputs();
+            }
+            
+            function calculateWinnerScore() {
+                if (!selectedWinner) {
+                    return;
+                }
+                
+                let totalNegative = 0;
+                let hasInvalidScore = false;
+                
+                // 计算所有负分的总和
+                for (const player of {{ session.player_names | tojson }}) {
+                    if (player !== selectedWinner) {
+                        const input = document.getElementById(`score_${player}`);
+                        if (input.value) {
+                            let score = parseFloat(input.value);
+                            // 如果输入是正数，自动转换为负数
+                            if (score > 0) {
+                                score = -Math.abs(score);
+                                input.value = score;
+                            }
+                            
+                            if (score >= 0) {
+                                hasInvalidScore = true;
+                                input.style.borderColor = 'red';
+                                errorMessage.textContent = '错误：分数必须小于或等于0';
+                            } else {
+                                totalNegative += score;
+                                input.style.borderColor = '';
+                            }
+                        }
+                    }
+                }
+                
+                if (!hasInvalidScore) {
+                    errorMessage.textContent = '';
+                    const winnerScore = -totalNegative;
+                    calculationInfo.textContent = `获胜玩家 ${selectedWinner} 将获得: ${winnerScore.toFixed(2)} 分`;
+                }
+            }
+            
+            // 为所有可编辑的输入框添加事件监听
+            scoreInputs.forEach(input => {
+                input.addEventListener('input', calculateWinnerScore);
+            });
+            
+            // 表单提交验证
+            document.getElementById('scoreForm').addEventListener('submit', function(e) {
+                if (!selectedWinner) {
+                    e.preventDefault();
+                    errorMessage.textContent = '请选择一名获胜玩家';
+                    return;
+                }
+                
+                let hasInvalidScore = false;
+                let hasEmptyScore = false;
+                
+                // 验证所有非获胜玩家的输入
+                for (const player of {{ session.player_names | tojson }}) {
+                    if (player !== selectedWinner) {
+                        const input = document.getElementById(`score_${player}`);
+                        if (!input.value) {
+                            hasEmptyScore = true;
+                            input.style.borderColor = 'red';
+                        } else {
+                            let score = parseFloat(input.value);
+                            // 如果输入是正数，自动转换为负数
+                            if (score > 0) {
+                                score = -Math.abs(score);
+                                input.value = score;
+                            }
+                            
+                            if (score >= 0) {
+                                hasInvalidScore = true;
+                                input.style.borderColor = 'red';
+                            }
+                        }
+                    }
+                }
+                
+                if (hasEmptyScore) {
+                    e.preventDefault();
+                    errorMessage.textContent = '请为所有非获胜玩家输入分数';
+                    return;
+                }
+                
+                if (hasInvalidScore) {
+                    e.preventDefault();
+                    errorMessage.textContent = '错误：分数必须小于0';
+                    return;
+                }
+                
+                // 所有验证通过，允许表单提交
+            });
+        });
+    </script>
+</body>
+</html>

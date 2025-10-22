@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏结束</title>
+    <style>
+    /* 全局样式重置 */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8f9fa;
+        color: #343a40;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* 导航栏样式 */
+    .navbar {
+        background-color: #2c3e50;
+        color: white;
+        padding: 15px 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .navbar h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 500;
+    }
+    
+    /* 容器样式 */
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        flex: 1;
+    }
+    
+    /* 卡片组件 */
+    .card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 24px;
+        margin-bottom: 24px;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .card-header {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .card-header h1 {
+        color: #2c3e50;
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+        text-align: center;
+    }
+    
+    /* 表格样式 */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 15px;
+    }
+    
+    .table thead {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .table th,
+    .table td {
+        padding: 14px 16px;
+        text-align: center;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .table tbody tr:nth-child(even):hover {
+        background-color: #e9ecef;
+    }
+    
+    /* 按钮样式 */
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+    
+    .btn:active {
+        transform: translateY(0);
+    }
+    
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0069d9;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    
+    .btn-block {
+        width: 100%;
+    }
+    
+    /* 按钮组 */
+    .btn-group {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 24px;
+    }
+    
+    /* 排名样式 */
+    .rank-1 {
+        background-color: #fff3cd;
+        font-weight: bold;
+    }
+    
+    .rank-2 {
+        background-color: #e9ecef;
+    }
+    
+    .rank-3 {
+        background-color: #f8d7da;
+    }
+    
+    /* 页脚样式 */
+    footer {
+        background-color: #2c3e50;
+        color: white;
+        text-align: center;
+        padding: 16px 20px;
+        margin-top: auto;
+    }
+    
+    footer p {
+        margin: 0;
+        font-size: 14px;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+        .container {
+            padding: 16px;
+        }
+        
+        .card {
+            padding: 20px;
+        }
+        
+        .btn-group {
+            flex-direction: column;
+        }
+        
+        .btn-group .btn {
+            width: 100%;
+        }
+        
+        .table {
+            font-size: 14px;
+        }
+        
+        .table th,
+        .table td {
+            padding: 10px 12px;
+        }
+    }
+</style>
+</head>
+<body>
+      <!-- 导航栏 -->
+      <nav class="navbar">
+          <div class="container">
+              <h1>干瞪眼计分系统</h1>
+          </div>
+      </nav>
+      
+      <!-- 主内容区 -->
+      <div class="container">
+          <!-- 游戏结束卡片 -->
+          <div class="card">
+              <div class="card-header">
+                  <h1>游戏结束</h1>
+                  <p class="text-center text-secondary" id="current-datetime"></p>
+              </div>
+              <div class="card-body">
+                  <p>感谢游玩，{{ session.username }}！</p>
+                  
+                  <div class="final-scores mb-4">
+                      {% set sorted_players = session.scores.items() | sort(attribute="1", reverse=true) %}
+                      {% set winner = sorted_players[0] %}
+                      <p class="winner text-center text-success font-weight-bold text-lg mb-4">🎉 获胜者: {{ winner[0] }} (得分: {{ winner[1] }}) 🎉</p>
+                      
+                      <table class="table">
+                          <thead>
+                              <tr>
+                                  <th>排名</th>
+                                  <th>玩家</th>
+                                  <th>最终得分</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {% for player, score in sorted_players %}
+                              <tr class="rank-{{ loop.index if loop.index <= 3 else '' }}">
+                                  <td>{{ loop.index }}</td>
+                                  <td>{{ player }}</td>
+                                  <td>{{ score }}</td>
+                              </tr>
+                              {% endfor %}
+                          </tbody>
+                      </table>
+                  </div>
+                  
+                  {% if session.round_history %}
+                  <div class="round-history">
+                      <h2 class="text-center text-secondary mb-3">完整回合历史</h2>
+                      <table class="table">
+                          <thead>
+                              <tr>
+                                  <th>回合</th>
+                                  {% for player in session.player_names %}
+                                  <th>{{ player }}</th>
+                                  {% endfor %}
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {% for round_data in session.round_history %}
+                              <tr>
+                                  <td>第 {{ loop.index }} 轮</td>
+                                  {% for player in session.player_names %}
+                                  <td>{{ round_data[player] }}</td>
+                                  {% endfor %}
+                              </tr>
+                              {% endfor %}
+                              <tr style="font-weight: bold;">
+                                  <td>总分</td>
+                                  {% for player in session.player_names %}
+                                  <td>{{ session.scores[player] }}</td>
+                                  {% endfor %}
+                              </tr>
+                          </tbody>
+                      </table>
+                  </div>
+                  {% endif %}
+                  
+                  <div class="btn-group">
+                      <a href="{{ url_for('scoring') }}" class="btn btn-primary">继续游戏</a>
+                      <a href="{{ url_for('setup_game') }}" class="btn btn-secondary">新游戏</a>
+                      {% if pdf_filename %}
+                      <a href="{{ url_for('download_pdf', filename=pdf_filename) }}" class="btn btn-success">下载得分报告</a>
+                      {% endif %}
+                  </div>
+              </div>
+          </div>
+      </div>
+      
+      <!-- 页脚 -->
+      <footer>
+          <p>干瞪眼计分系统 &copy; 2023</p>
+      </footer>
+      
+      <script>
+          // 显示当前日期和时间
+          function displayDateTime() {
+              const now = new Date();
+              const options = {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+              };
+              const formattedDateTime = now.toLocaleString('zh-CN', options);
+              document.getElementById('current-datetime').textContent = `结算时间: ${formattedDateTime}`;
+          }
+          
+          // 页面加载时显示日期和时间
+          window.onload = displayDateTime;
+      </script>
+  </body>
+</html>
