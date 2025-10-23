@@ -263,7 +263,7 @@
                           </thead>
                           <tbody>
                               {% for player, score in sorted_players %}
-                              <tr class="rank-{{ loop.index if loop.index <= 3 else '' }}">
+                              <tr style="{% if score > 0 %}background-color: #FFFFE0; color: #155724; font-weight: bold;{% endif %}">
                                   <td>{{ loop.index }}</td>
                                   <td>{{ player }}</td>
                                   <td>{{ score }}</td>
@@ -305,10 +305,9 @@
                   </div>
                   {% endif %}
                   
-                  <div class="btn-group">
-                      <a href="{{ url_for('scoring') }}" class="btn btn-primary">继续游戏</a>
-                      <a href="{{ url_for('setup_game') }}" class="btn btn-secondary">新游戏</a>
-
+                  <div class="btn-group btn-group-lg" style="gap: 15px;">
+                      <a href="{{ url_for('scoring') }}" class="btn btn-primary btn-lg">继续游戏</a>
+                      <a href="{{ url_for('setup_game') }}" class="btn btn-success btn-lg">新游戏</a>
                   </div>
               </div>
           </div>
