@@ -14,6 +14,7 @@ import logging
 import socket
 import platform
 import sys
+import requests
 
 # 导入dotenv模块，用于从.env文件加载环境变量
 from dotenv import load_dotenv
@@ -87,6 +88,51 @@ class GameRecord(db.Model):
     total_scores = db.Column(db.Text)
     # 添加与UserSession的关系
     user_session = db.relationship('UserSession', backref='game_records')
+
+# 辅助函数：获取真实IP地址
+def get_real_ip(request):
+    """获取用户真实IP地址，支持代理和负载均衡环境"""
+    # 尝试从代理头获取真实IP
+    headers = request.headers
+    real_ip = headers.get('X-Forwarded-For', '').split(',')[0].strip()
+    if not real_ip:
+        real_ip = headers.get('X-Real-IP', '').strip()
+    if not real_ip:
+        real_ip = request.remote_addr
+    
+    return real_ip or 'Unknown'
+
+# 辅助函数：获取IP地址对应的地理位置信息
+def get_ip_location(ip):
+    """使用ipinfo.io API获取IP地址的地理位置信息"""
+    if ip == '127.0.0.1' or ip == 'localhost' or ip.startswith('192.168.') or ip.startswith('10.'):
+        return '本地网络'
+    
+    try:
+        # 使用ipinfo.io的免费API
+        url = f'https://ipinfo.io/{ip}/json'
+        response = requests.get(url, timeout=3)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # 构建地区信息
+            city = data.get('city', '')
+            region = data.get('region', '')
+            country = data.get('country', '')
+            
+            location_parts = []
+            if country:
+                location_parts.append(country)
+            if region and region != city:
+                location_parts.append(region)
+            if city:
+                location_parts.append(city)
+            
+            return ', '.join(location_parts) or '未知地区'
+    except Exception as e:
+        logger.error(f"获取IP位置信息失败 - IP: {ip}, 错误: {str(e)}")
+    
+    return '未知地区'
 
 # 创建数据库表
 with app.app_context():
@@ -291,17 +337,22 @@ def login():
             username = request.form['username']
             email = request.form['email']
             user_agent = request.headers.get('User-Agent', 'Unknown')
-            ip_address = request.remote_addr or 'Unknown'
+            
+            # 使用新函数获取真实IP地址
+            ip_address = get_real_ip(request)
+            # 获取IP对应的地理位置
+            region = get_ip_location(ip_address)
             
             # 记录登录尝试
-            logger.info(f"登录尝试 - 用户名: {username}, 邮箱: {email}, IP: {ip_address}, 用户代理: {user_agent}")
+            logger.info(f"登录尝试 - 用户名: {username}, 邮箱: {email}, IP: {ip_address}, 地区: {region}, 用户代理: {user_agent}")
             
             # 创建用户会话记录
             user_session = UserSession(
                 username=username,
                 email=email,
                 user_agent=user_agent,
-                ip_address=ip_address
+                ip_address=ip_address,
+                region=region
             )
             db.session.add(user_session)
             db.session.commit()
@@ -333,12 +384,18 @@ def setup_game():
         email = 'anonymous@example.com'
         user_agent = request.headers.get('User-Agent', 'Unknown')
         
+        # 使用新函数获取真实IP地址
+        ip_address = get_real_ip(request)
+        # 获取IP对应的地理位置
+        region = get_ip_location(ip_address)
+        
         # 创建用户会话记录
         user_session = UserSession(
             username=username,
             email=email,
             user_agent=user_agent,
-            ip_address=request.remote_addr
+            ip_address=ip_address,
+            region=region
         )
         db.session.add(user_session)
         db.session.commit()
