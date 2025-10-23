@@ -246,6 +246,7 @@
               </div>
               <div class="card-body">
                   <p>感谢游玩，{{ session.username }}！</p>
+                  <p class="text-center text-secondary">温馨提示：请截屏保留结果</p>
                   
                   <div class="final-scores mb-4">
                       {% set sorted_players = session.scores.items() | sort(attribute="1", reverse=true) %}
@@ -307,9 +308,7 @@
                   <div class="btn-group">
                       <a href="{{ url_for('scoring') }}" class="btn btn-primary">继续游戏</a>
                       <a href="{{ url_for('setup_game') }}" class="btn btn-secondary">新游戏</a>
-                      {% if pdf_filename %}
-                      <a href="{{ url_for('download_pdf', filename=pdf_filename) }}" class="btn btn-success">下载得分报告</a>
-                      {% endif %}
+
                   </div>
               </div>
           </div>
@@ -317,7 +316,7 @@
       
       <!-- 页脚 -->
       <footer>
-          <p>干瞪眼计分系统 &copy; 2023</p>
+          <p>干瞪眼计分系统 v0.2 &copy; 2025</p>
       </footer>
       
       <script>
