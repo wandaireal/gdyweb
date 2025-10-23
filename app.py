@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import joinedload
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import json
 import logging
@@ -72,6 +73,8 @@ class UserSession(db.Model):
     logout_time = db.Column(db.DateTime)
     duration = db.Column(db.Integer)
     user_agent = db.Column(db.Text)
+    ip_address = db.Column(db.String(50), nullable=True)
+    region = db.Column(db.String(100), nullable=True)
 
 class GameRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,6 +85,8 @@ class GameRecord(db.Model):
     player_names = db.Column(db.Text)
     round_scores = db.Column(db.Text)
     total_scores = db.Column(db.Text)
+    # 添加与UserSession的关系
+    user_session = db.relationship('UserSession', backref='game_records')
 
 # 创建数据库表
 with app.app_context():
@@ -130,6 +135,15 @@ def register_chinese_fonts():
 
 # 在应用启动时注册字体
 CHINESE_FONT = register_chinese_fonts()
+
+# 添加时区转换过滤器
+@app.template_filter('to_utc8')
+def to_utc8(dt):
+    """将UTC时间转换为东八区（北京时间）"""
+    if dt:
+        # UTC+8
+        return dt + timedelta(hours=8)
+    return None
 
 # PDF生成功能（支持中文）
 def generate_score_pdf(player_names, round_history, total_scores, filename):
@@ -286,7 +300,8 @@ def login():
             user_session = UserSession(
                 username=username,
                 email=email,
-                user_agent=user_agent
+                user_agent=user_agent,
+                ip_address=ip_address
             )
             db.session.add(user_session)
             db.session.commit()
@@ -322,7 +337,8 @@ def setup_game():
         user_session = UserSession(
             username=username,
             email=email,
-            user_agent=user_agent
+            user_agent=user_agent,
+            ip_address=request.remote_addr
         )
         db.session.add(user_session)
         db.session.commit()
@@ -363,6 +379,19 @@ def setup_game():
             
             # 记录游戏设置完成
             logger.info(f"游戏设置完成 - 会话ID: {session['user_session_id']}, 用户名: {username}, 玩家: {', '.join(player_names)}")
+            
+            # 创建游戏记录并设置开始时间
+            game_record = GameRecord(
+                user_session_id=session['user_session_id'],
+                game_start_time=datetime.utcnow(),
+                player_count=session['player_count'],
+                player_names=json.dumps(session['player_names'])
+            )
+            db.session.add(game_record)
+            db.session.commit()
+            
+            # 存储游戏记录ID到session
+            session['game_record_id'] = game_record.id
             
             # 重定向到计分页面
             return redirect(url_for('scoring'))
@@ -450,16 +479,25 @@ def end_game():
         # 记录游戏结束
         logger.info(f"游戏结束 - 用户会话ID: {session['user_session_id']}, 用户名: {username}, 玩家数量: {session['player_count']}")
         
-        # 保存游戏记录到数据库
-        game_record = GameRecord(
-            user_session_id=session['user_session_id'],
-            game_end_time=datetime.utcnow(),
-            player_count=session['player_count'],
-            player_names=json.dumps(session['player_names']),
-            round_scores=json.dumps(session['round_history']),
-            total_scores=json.dumps(session['scores'])
-        )
-        db.session.add(game_record)
+        # 更新游戏记录
+        if 'game_record_id' in session:
+            game_record = GameRecord.query.get(session['game_record_id'])
+            if game_record:
+                game_record.game_end_time = datetime.utcnow()
+                game_record.round_scores = json.dumps(session['round_history'])
+                game_record.total_scores = json.dumps(session['scores'])
+        else:
+            # 如果没有找到游戏记录，创建新的
+            game_record = GameRecord(
+                user_session_id=session['user_session_id'],
+                game_start_time=datetime.utcnow(),  # 设置游戏开始时间
+                game_end_time=datetime.utcnow(),
+                player_count=session['player_count'],
+                player_names=json.dumps(session['player_names']),
+                round_scores=json.dumps(session['round_history']),
+                total_scores=json.dumps(session['scores'])
+            )
+            db.session.add(game_record)
         
         # 更新用户会话的退出时间和使用时长
         user_session = UserSession.query.get(session['user_session_id'])
@@ -563,6 +601,91 @@ def logout():
     session.clear()
     
     return redirect(url_for('index'))
+
+# 管理员登录路由
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login():
+    # 如果已经登录，直接跳转到统计页面
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin_stats'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # 验证用户名和密码
+        if username == 'admin' and password == '123123':
+            # 登录成功，设置会话
+            session['admin_logged_in'] = True
+            logger.info(f"管理员登录成功 - IP: {request.remote_addr}")
+            return redirect(url_for('admin_stats'))
+        else:
+            # 登录失败
+            logger.warning(f"管理员登录失败 - 用户名: {username}, IP: {request.remote_addr}")
+            return render_template('admin_login.html', error='用户名或密码错误')
+    
+    # GET请求显示登录页面
+    return render_template('admin_login.html')
+
+# 管理员统计页面路由
+@app.route('/admin/stats')
+def admin_stats():
+    # 检查是否已登录
+    if not session.get('admin_logged_in'):
+        logger.warning(f"未授权访问管理员统计页面 - IP: {request.remote_addr}")
+        return redirect(url_for('admin_login'))
+    
+    try:
+        # 获取所有游戏记录，预加载user_session关系
+        game_records = GameRecord.query.options(db.joinedload(GameRecord.user_session)).all()
+        
+        # 计算总游戏次数
+        total_games = len(game_records)
+        
+        # 计算总游戏轮数
+        total_rounds = 0
+        for record in game_records:
+            try:
+                round_history = json.loads(record.round_scores)
+                total_rounds += len(round_history)
+                # 添加回合数属性到记录对象
+                record.round_count = len(round_history)
+            except:
+                record.round_count = 0
+        
+        # 计算每个游戏的最高得分者和分数
+        for record in game_records:
+            try:
+                total_scores = json.loads(record.total_scores)
+                if total_scores:
+                    top_scorer = max(total_scores.items(), key=lambda x: x[1])
+                    record.top_scorer = top_scorer[0]
+                    record.top_score = top_scorer[1]
+                else:
+                    record.top_scorer = '未知'
+                    record.top_score = 0
+            except:
+                record.top_scorer = '未知'
+                record.top_score = 0
+        
+        logger.info(f"管理员查看统计页面 - 总游戏数: {total_games}, 总轮数: {total_rounds}")
+        
+        return render_template('admin_stats.html', 
+                             total_games=total_games,
+                             total_rounds=total_rounds,
+                             game_records=game_records)
+    
+    except Exception as e:
+        logger.error(f"获取统计数据失败: {str(e)}")
+        return f"获取统计数据时出错: {str(e)}"
+
+# 管理员登出路由
+@app.route('/admin/logout')
+def admin_logout():
+    # 清除管理员登录状态
+    session.pop('admin_logged_in', None)
+    logger.info(f"管理员登出 - IP: {request.remote_addr}")
+    return redirect(url_for('admin_login'))
 
 # 在文件末尾修改启动代码
 if __name__ == '__main__':
