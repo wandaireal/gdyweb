@@ -91,48 +91,96 @@ class GameRecord(db.Model):
 
 # 辅助函数：获取真实IP地址
 def get_real_ip(request):
-    """获取用户真实IP地址，支持代理和负载均衡环境"""
-    # 尝试从代理头获取真实IP
+    """获取用户真实IP地址，支持代理和负载均衡环境，特别是Render平台"""
+    # 尝试从各种代理头获取真实IP
     headers = request.headers
+    
+    # 首先检查Render平台常用的代理头
     real_ip = headers.get('X-Forwarded-For', '').split(',')[0].strip()
     if not real_ip:
         real_ip = headers.get('X-Real-IP', '').strip()
     if not real_ip:
+        real_ip = headers.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+    if not real_ip:
+        real_ip = headers.get('HTTP_X_REAL_IP', '').strip()
+    if not real_ip:
+        forwarded = headers.get('Forwarded', '').split(',')[0].strip()
+        if forwarded.startswith('for='):
+            real_ip = forwarded.split('=')[1].strip()
+    if not real_ip:
         real_ip = request.remote_addr
+    
+    # 移除可能的端口号
+    if ':' in real_ip:
+        real_ip = real_ip.split(':')[0]
     
     return real_ip or 'Unknown'
 
 # 辅助函数：获取IP地址对应的地理位置信息
 def get_ip_location(ip):
-    """使用ipinfo.io API获取IP地址的地理位置信息"""
-    if ip == '127.0.0.1' or ip == 'localhost' or ip.startswith('192.168.') or ip.startswith('10.'):
+    """使用ipinfo.io API获取IP地址的地理位置信息，增强了在云平台上的兼容性"""
+    # 记录IP地址信息用于调试
+    logger.info(f"处理IP地址位置查询 - IP: {ip}")
+    
+    # 检查是否为本地或内网IP
+    if ip == '127.0.0.1' or ip == 'localhost' or ip.startswith('192.168.') or ip.startswith('10.') or ip.startswith('172.16.') or ip.startswith('172.31.'):
+        logger.info(f"IP {ip} 被识别为本地/内网IP")
         return '本地网络'
     
+    # 检查是否为负载均衡器或云平台IP
+    load_balancer_ips = ['10.10.10.1', '10.0.0.1']  # 可根据Render平台实际情况添加
+    if ip in load_balancer_ips:
+        logger.info(f"IP {ip} 被识别为负载均衡器IP")
+        return '云平台负载均衡器'
+    
     try:
-        # 使用ipinfo.io的免费API
-        url = f'https://ipinfo.io/{ip}/json'
-        response = requests.get(url, timeout=3)
-        
-        if response.status_code == 200:
-            data = response.json()
-            # 构建地区信息
-            city = data.get('city', '')
-            region = data.get('region', '')
-            country = data.get('country', '')
-            
-            location_parts = []
-            if country:
-                location_parts.append(country)
-            if region and region != city:
-                location_parts.append(region)
-            if city:
-                location_parts.append(city)
-            
-            return ', '.join(location_parts) or '未知地区'
+        # 尝试多次请求以提高成功率
+        for attempt in range(2):
+            try:
+                # 使用ipinfo.io的免费API
+                url = f'https://ipinfo.io/{ip}/json'
+                # 添加超时和重试配置
+                response = requests.get(url, timeout=5, headers={'Accept': 'application/json'})
+                
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        # 记录返回的数据用于调试
+                        logger.info(f"IP {ip} 地理位置信息: {data}")
+                        
+                        # 构建地区信息
+                        city = data.get('city', '')
+                        region = data.get('region', '')
+                        country = data.get('country', '')
+                        
+                        location_parts = []
+                        if country:
+                            location_parts.append(country)
+                        if region and region != city:
+                            location_parts.append(region)
+                        if city:
+                            location_parts.append(city)
+                        
+                        location = ', '.join(location_parts)
+                        return location or '未知地区'
+                    except json.JSONDecodeError:
+                        logger.error(f"解析IP位置JSON失败 - IP: {ip}")
+                elif response.status_code == 429:
+                    logger.warning(f"IP查询达到API限制 - IP: {ip}, 状态码: {response.status_code}")
+                    # 如果是API限制，使用备用方案
+                    return f'IP: {ip}'
+                else:
+                    logger.warning(f"IP查询失败 - IP: {ip}, 状态码: {response.status_code}")
+            except requests.RequestException as e:
+                logger.warning(f"IP查询请求异常(尝试 {attempt+1}) - IP: {ip}, 错误: {str(e)}")
+                if attempt == 0:
+                    import time
+                    time.sleep(1)  # 短暂等待后重试
     except Exception as e:
         logger.error(f"获取IP位置信息失败 - IP: {ip}, 错误: {str(e)}")
     
-    return '未知地区'
+    # 如果所有尝试都失败，至少返回IP地址
+    return f'IP: {ip}'
 
 # 创建数据库表
 with app.app_context():
@@ -613,10 +661,13 @@ def download_pdf(filename):
 # 调试页面
 @app.route('/debug')
 def debug():
+    # 使用新函数获取真实IP地址
+    visitor_ip = get_real_ip(request)
+    
     # 记录调试页面访问
     username = session.get('username', 'Unknown')
     user_session_id = session.get('user_session_id', 'Unknown')
-    logger.info(f"访问调试页面 - 会话ID: {user_session_id}, 用户名: {username}")
+    logger.info(f"访问调试页面 - 会话ID: {user_session_id}, 用户名: {username}, IP: {visitor_ip}")
     
     return f"""
     <h1>调试信息</h1>
@@ -637,6 +688,9 @@ def debug():
 @app.route('/logout')
 def logout():
     """手动登出功能"""
+    # 使用新函数获取真实IP地址
+    visitor_ip = get_real_ip(request)
+    
     username = session.get('username', 'Unknown')
     user_session_id = session.get('user_session_id', None)
     
@@ -648,11 +702,11 @@ def logout():
                 user_session.logout_time = datetime.utcnow()
                 user_session.duration = int((user_session.logout_time - user_session.login_time).total_seconds())
                 db.session.commit()
-                logger.info(f"手动登出 - 会话ID: {user_session_id}, 用户名: {username}, 持续时间: {user_session.duration}秒")
+                logger.info(f"手动登出 - 会话ID: {user_session_id}, 用户名: {username}, IP: {visitor_ip}, 持续时间: {user_session.duration}秒")
         except Exception as e:
             logger.error(f"更新登出信息失败 - 会话ID: {user_session_id}, 错误: {str(e)}")
     else:
-        logger.warning(f"尝试登出但无活动会话 - IP: {request.remote_addr}")
+        logger.warning(f"尝试登出但无活动会话 - IP: {visitor_ip}")
     
     # 清除session
     session.clear()
@@ -666,6 +720,10 @@ def admin_login():
     if session.get('admin_logged_in'):
         return redirect(url_for('admin_stats'))
     
+    # 使用新函数获取真实IP地址和地理位置
+    admin_ip = get_real_ip(request)
+    admin_region = get_ip_location(admin_ip)
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -674,11 +732,11 @@ def admin_login():
         if username == 'admin' and password == '123123':
             # 登录成功，设置会话
             session['admin_logged_in'] = True
-            logger.info(f"管理员登录成功 - IP: {request.remote_addr}")
+            logger.info(f"管理员登录成功 - IP: {admin_ip}, 地区: {admin_region}")
             return redirect(url_for('admin_stats'))
         else:
             # 登录失败
-            logger.warning(f"管理员登录失败 - 用户名: {username}, IP: {request.remote_addr}")
+            logger.warning(f"管理员登录失败 - 用户名: {username}, IP: {admin_ip}, 地区: {admin_region}")
             return render_template('admin_login.html', error='用户名或密码错误')
     
     # GET请求显示登录页面
@@ -687,9 +745,12 @@ def admin_login():
 # 管理员统计页面路由
 @app.route('/admin/stats')
 def admin_stats():
+    # 使用新函数获取真实IP地址
+    visitor_ip = get_real_ip(request)
+    
     # 检查是否已登录
     if not session.get('admin_logged_in'):
-        logger.warning(f"未授权访问管理员统计页面 - IP: {request.remote_addr}")
+        logger.warning(f"未授权访问管理员统计页面 - IP: {visitor_ip}")
         return redirect(url_for('admin_login'))
     
     try:
@@ -739,9 +800,12 @@ def admin_stats():
 # 管理员登出路由
 @app.route('/admin/logout')
 def admin_logout():
+    # 使用新函数获取真实IP地址
+    visitor_ip = get_real_ip(request)
+    
     # 清除管理员登录状态
     session.pop('admin_logged_in', None)
-    logger.info(f"管理员登出 - IP: {request.remote_addr}")
+    logger.info(f"管理员登出 - IP: {visitor_ip}")
     return redirect(url_for('admin_login'))
 
 # 在文件末尾修改启动代码
